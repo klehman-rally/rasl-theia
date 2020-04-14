@@ -1,0 +1,11 @@
+.git
+.gitignore
+.gitattributes
+.idea
+LICENSE
+README.md
+deploy_func.sh
+env
+test
+ci
+docs
