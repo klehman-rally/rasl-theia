@@ -1,6 +1,8 @@
 import json
 import requests
 import re
+from helpers.util import verifySlackSignature
+
 
 def seerally(request):
     """
@@ -55,8 +57,20 @@ def seerally(request):
     #  
     #####
 
+    config = inhaleConfig()
+    #verified_req = verifySlackSignature(request, config)
+    response_url = request.form['response_url']
+    print(f'would send response to: {response_url}')
+
     response = '{"text":"Hola Slacker, digesting your request..."}'
     return response
+
+
+def inhaleConfig():
+    with open('config.json', 'r') as f:
+        data = f.read()
+    config = json.loads(data)
+    return config
 
 def rallyInfoFetcher():
     """
