@@ -158,6 +158,9 @@ def inner_verifySignature(request, config):
     req_data = jsonify(request.form)
 
     # alt 3
+    #req_data = request.form.to_dict(flat=False)
+
+    # alt 3.5
     #data = request.form.to_dict(flat=False)
     #req_data = jsonify(data)
 
@@ -165,6 +168,9 @@ def inner_verifySignature(request, config):
     #length = request.headers["Content-Length"]
     #req_data = request.stream.read(length)
 
+    print(f'req_data: {req_data}')
+
+    #payload = str.encode(f'v0:{timestamp}:') + req_data
     payload = str.encode(f'v0:{timestamp}:{req_data}')
     print(f'payload: {payload}')
 

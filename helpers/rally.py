@@ -3,6 +3,7 @@ import time
 import json
 import re
 import time
+from collections import OrderedDict
 
 import requests
 
@@ -10,7 +11,7 @@ RALLY_BASE_URL = 'https://rally1.rallydev.com/slm/webservice/v2.0'
 RALLY_ART_ID_PATTERN = re.compile(r'\b((?:US|S|DE|TA|DS|F|I|T)\d{1,6})\b')
 PAGESIZE = 2000
 
-DEFECT_FIELDS = "FormattedID Name Blocked BlockedReason CreatedBy Description Environment FlowState Owner Project SubmittedBy State ScheduleState Priority Severity Tags PlanEstimate Release Resolution FoundInBuild FixedInBuild VerifiedInBuild AffectedCustomers DisplayColor Ready LastUpdateDate".split(' ')
+DEFECT_FIELDS = "FormattedID Name Workspace Project SubmittedBy Blocked BlockedReason Description Environment FlowState Owner State ScheduleState Priority Severity Tags PlanEstimate Release Resolution FoundInBuild FixedInBuild VerifiedInBuild AffectedCustomers DisplayColor Ready LastUpdateDate".split(' ')
 
 def rallyFIDs(target):
     """
@@ -47,8 +48,36 @@ def getRallyArtifact(apikey, workspace, fid):
     items = result['QueryResult']['Results']
     print(f'results items ({result["QueryResult"]["TotalResultCount"]}): {repr(items)}')
     bloated_item = items.pop(0)  # we expect only 1 item to be returned
-    item = {key : value for key, value in bloated_item.items() if key in DEFECT_FIELDS}
+    raw_item = {key : value for key, value in bloated_item.items() if key in DEFECT_FIELDS}
+    item = OrderedDict()
+    for attr DEFECT_FIELDS:
+        value = item[attr]
+        if value:
+            if attr in ['Workspace', 'Project', 'FlowState', 'SubmittedBy']:
+                value = item[attr]['_refObjectName']
+            if attr == 'CreatedBy':
+                value = item['CreatedBy']['Name']
+            if attr == 'LastUpdateDate':
+                value = value.replace('T', ' ')
+            if attr == 'Tags':
+                if item['Tags']['Count'] != 0:
+                    tags_collection_ref = item['Tags']
+                    tags = getTags(headers, tags_collection_ref)
+                    value = ", ".join(tags)
+           item[attr] = value 
+
     return item
+
+def getTags(headers, tags_ref):
+    response = requests.get(url, headers=headers, params=params)
+    if response.status_code != 200:
+        return []
+    result = json.loads(response.text)
+    if result['QueryResult']['Errors']:
+        return []
+    items = result['QueryResult']['Results']
+    tags = [item['Name'] for item in items]
+    return tags
 
 
 def validRallyIdent(apikey, sub_id):
