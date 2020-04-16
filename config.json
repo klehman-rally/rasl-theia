@@ -1,3 +1,4 @@
 {
-    "SLACK_SIGNING_SECRET" :  "fd7b88dc754dc95446e5ebe1fa89aa78"
+    "SLACK_SIGNING_SECRET" :  "fd7b88dc754dc95446e5ebe1fa89aa78",
+    "SLACK_VERIFY_TOKEN"   :  "jT9AcTUPWqtcPQofmAF6APMc"
 }

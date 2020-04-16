@@ -10,7 +10,7 @@ def verifySlackSignature(request, config):
     timestamp = request.headers.get('X-Slack-Request-Timestamp', '')
     signature = request.headers.get('X-Slack-Signature', '')
     if not timestamp or not signature:
-        raise ValueError('Invalid request/credentials')
+        raise ValueError('Invalid request/credentials, missing elements')
 
     # from gcp-github-app helpers/signature.py ->validateGithubSignature function
     # HMAC requires its key to be bytes, but data is strings.
@@ -26,7 +26,7 @@ def verifySlackSignature(request, config):
     request_hash = f'v0={request_digest}'
 
     if not hmac.compare_digest(request_hash, signature):
-        raise ValueError('Invalid request/credentials')
+        raise ValueError('Invalid request/credentials, comparison failed')
 
     print('request signature indicates valid Slack origination')
     return True

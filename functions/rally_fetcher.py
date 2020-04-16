@@ -1,8 +1,15 @@
+import os
 import json
 import requests
 import re
-from helpers.util import verifySlackSignature
 
+from flask import jsonify
+
+from helpers.rally import rallyFIDs, getRallyArtifact
+#from helpers.util import verifySlackSignature
+
+import hmac
+import hashlib
 
 def seerally(request):
     """
@@ -11,7 +18,7 @@ def seerally(request):
             request (flask.Request): HTTP request object.
             the guts of the info is in request.form (an ImmutableMultDict instance)
             and will typically have the following items:
-              token        : 8AhHFCl1kJLyNdE3frhr9cLt
+              token        : jT9AcTUPWqtcPQofmAF6APMc
               team_id      : T85AUPHJ4
               team_domain  : ca-agilecentral
               channel_id   : C011LE84T6J
@@ -37,6 +44,7 @@ def seerally(request):
     except Exception as exc:
         print(exc)
 
+    print(f'request method: {request.method}')
     #print(f'request data: {request.data}')
     #print(f'request args: {request.args}')
     #argls = "  ".join([f'{k} : {v}' for k, v in request.args.items()])
@@ -57,11 +65,38 @@ def seerally(request):
     #  
     #####
 
+
     config = inhaleConfig()
-    #verified_req = verifySlackSignature(request, config)
+    #verified_req = verifySlackSignature(request, config)  # something is horked with signing...
+    #ok = verifySignature(request, config)
+    #if ok:
+    #    print('request signature indicates valid Slack origination')
+    #else:
+    #    print(f'bad request arrangement, no operation...')
+
+    ok = verifyToken(request, config)
+    print('request token indicates valid Slack origination')
+
     response_url = request.form['response_url']
     print(f'would send response to: {response_url}')
 
+    # grab the text, extract the first "word" that looks like a Rally artifact FormattedID
+    # and attempt to find it via requests.get
+    rally_fids = rallyFIDs(request.form.get('text', ''))
+    if rally_fids:
+        rally_fid = rally_fids.pop(0)
+
+    slack_channel = request.form.get('channel_id')
+    raw_ralmap = os.environ.get('RALLY_MAP', ' / ')
+    ck_pairs = raw_ralmap.split(',')
+    ralmap = {pair.split(' / ')[0] : pair.split(' / ')[1] for pair in ck_pairs}
+    apikey = ralmap[slack_channel] if slack_channel in ralmap else None
+    # we hard-code the Rally workspace ObjectID here, but we'd need to put it in the RALLY_MAP...
+    workspace = '65842453532'
+    if apikey:
+        art_info = getRallyArtifact(apikey, workspace, rally_fid)
+        print(f'art_info: {repr(art_info)}')
+    
     response = '{"text":"Hola Slacker, digesting your request..."}'
     return response
 
@@ -72,7 +107,90 @@ def inhaleConfig():
     config = json.loads(data)
     return config
 
+
+def verifyToken(request, config):
+    atok = request.form.get('token', '*MISSING*')
+    etok = config.get('SLACK_VERIFY_TOKEN', '*UNASSIGNED*')
+    if atok != etok:
+        raise ValueError('Invalid request/originator unknown')
+    return True
+
+
 def rallyInfoFetcher():
     """
     """
     pass
+
+
+
+def inner_verifySignature(request, config):
+    timestamp = request.headers.get('X-Slack-Request-Timestamp', '')
+    signature = request.headers.get('X-Slack-Signature', '')
+    print(f'message timestamp: {timestamp}')
+    print(f'message signature: {signature}')
+    if not timestamp or not signature:
+        raise ValueError('Invalid request/credentials, missing elements')
+
+    # from gcp-github-app helpers/signature.py ->validateGithubSignature function
+    # HMAC requires its key to be bytes, but data is strings.
+    #mac = hmac.new(secret, msg=request.data, digestmod=hashlib.sha256)
+    #return hmac.compare_digest(mac.hexdigest(), signature)
+
+    #payload = str.encode(f'v0:{timestamp}:') + request.get_data()
+    command  = request.form['command']
+    text     = request.form['text']
+    req_data = f'command={command}&text={text}' 
+    payload = str.encode(f'v0:{timestamp}:{req_data}')
+    print(f'payload: {payload}')
+    #payload = str.encode('v0:{}:'.format(timestamp)) + request.get_data()
+
+    secret = str.encode(config['SLACK_SIGNING_SECRET'])
+    print(f'slack shush: {secret}')
+    request_digest = hmac.new(secret, payload, hashlib.sha256).hexdigest()
+    request_hash = f'v0={request_digest}'
+    print(f'request_hash: {request_hash}')
+
+    if not hmac.compare_digest(request_hash, signature):
+        print('message not deemed valid...')
+        #raise ValueError('Invalid request/credentials, comparison failed')
+
+
+def verifySignature(request, config):
+    """
+        The Slack doco (and their example code in their Python slackeventsapi/server.py code)
+        states that you have to put together the version, timestamp, request data into
+        a bytestring after slamming them together like f'v0:{timestamp}:{request.get_data()}'.
+        Then, you use that along with the Slack signing secret to obtain an hmac (sha256)
+        item that you call hexdigest on to obtain a value that is compared to the signature
+        that was passed along in the request header.
+        However, using that technique doesn't work, mostly because there is never anything
+        in request.data or request.get_data().  This seems to be related to how Slack
+        handles slash commands. They provide form data (request.form) in an ImmutableMultDict
+        instance. They have other example doco related to signing that implies that the
+        request data that should be or is actually used is a quasi query-string of
+        'command=/foobar&text=whatever'.  Processing the message to come up with that and
+        use it in the signature checking also doesn't work out.
+        This signature thing is great, but if they use other stuff that they don't document
+        or change what they do but don't document it, then it is all for nothing...
+    """
+    timestamp = request.headers.get('X-Slack-Request-Timestamp', '')
+    signature = request.headers.get('X-Slack-Signature', '')
+
+    command = request.form['command']
+    text    = request.form['text']
+    vbody = f'command={command}&text={text}' 
+    #req = str.encode('v0:{}:'.format(timestamp)) + request.get_data()
+    #req = str.encode('v0:{}:{}'.format(timestamp, req_data))
+    req_data = str.encode(f'v0:{timestamp}:{vbody}')
+    print(f"pre-sig check req: {req_data}")
+    request_digest = hmac.new(str.encode(config['SLACK_SIGNING_SECRET']),
+                              req_data, hashlib.sha256).hexdigest()
+    request_hash = f'v0={request_digest}'
+    print(f'verf request_hash: {request_hash}')
+
+    if not hmac.compare_digest(request_hash, signature):
+        raise ValueError('Invalid request/credentials.')
+    print('request signature indicates valid Slack origination')
+    return True
+
+

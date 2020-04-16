@@ -4,4 +4,5 @@
 #
 ####################################################################################################
 
-from functions import seerally
+from functions      import seerally
+from helpers.util   import verifySlackSignature
