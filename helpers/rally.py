@@ -29,8 +29,8 @@ def getRallyArtifact(apikey, workspace, fid):
     #fields  = 'FormattedID,Name,ObjectID,Tags,State,Owner,Description'
     specific_fid = f'(FormattedID = "{fid}")'
     params = {'workspace' : f'workspace/{workspace}',
-              'fetch'     : 'true',
-              #'fetch'    : f'{",".join(DEFECT_FIELDS)}',
+              #'fetch'     : 'true',
+              'fetch'    : f'{",".join(DEFECT_FIELDS)}',
               'query'     : specific_fid
              }
 
@@ -54,13 +54,13 @@ def getRallyArtifact(apikey, workspace, fid):
         value = raw_item[attr]
         if value:
             if attr in ['Workspace', 'Project', 'FlowState', 'SubmittedBy']:
-                value = item[attr]['_refObjectName']
+                value = raw_item[attr]['_refObjectName']
             if attr == 'CreatedBy':
-                value = item['CreatedBy']['Name']
+                value = raw_item['CreatedBy']['Name']
             if attr == 'LastUpdateDate':
                 value = value.replace('T', ' ')
             if attr == 'Tags':
-                if item['Tags']['Count'] != 0:
+                if raw_item['Tags']['Count'] != 0:
                     tags_collection_ref = item['Tags']
                     tags = getTags(headers, tags_collection_ref)
                     value = ", ".join(tags)
