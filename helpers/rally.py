@@ -55,21 +55,25 @@ def getRallyArtifact(apikey, workspace, fid):
         if value:
             if attr in ['Workspace', 'Project', 'FlowState', 'SubmittedBy']:
                 value = raw_item[attr]['_refObjectName']
+            if attr == 'Name':
+                value = raw_item.get('_refObjectName')
             if attr == 'CreatedBy':
                 value = raw_item['CreatedBy']['Name']
             if attr == 'LastUpdateDate':
                 value = value.replace('T', ' ')
             if attr == 'Tags':
-                if raw_item['Tags']['Count'] != 0:
-                    tags_collection_ref = item['Tags']
-                    tags = getTags(headers, tags_collection_ref)
-                    value = ", ".join(tags)
+                if raw_item['Tags']['Count'] == 0:
+                    continue
+                tags_collection_ref = raw_item['Tags']['_ref']
+                tags = getTags(headers, tags_collection_ref)
+                value = ", ".join(tags)
+
             item[attr] = value 
 
     return item
 
 def getTags(headers, tags_ref):
-    response = requests.get(url, headers=headers, params=params)
+    response = requests.get(tags_ref, headers=headers, params=params)
     if response.status_code != 200:
         return []
     result = json.loads(response.text)

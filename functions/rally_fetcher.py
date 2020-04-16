@@ -98,11 +98,15 @@ def seerally(request):
     apikey = ralmap[slack_channel] if slack_channel in ralmap else None
     # we hard-code the Rally workspace ObjectID here, but we'd need to put it in the RALLY_MAP...
     workspace = '65842453192'
-    if apikey:
-        art_info = getRallyArtifact(apikey, workspace, rally_fid)
-        print(f'art_info: {repr(art_info)}')
+    if not apikey:
+        response = {"text":"Hola Slacker, I have no info for you......"}
+        return response
+
+    art_info = getRallyArtifact(apikey, workspace, rally_fid)
+    print(f'art_info: {repr(art_info)}')
+    resp = {'text': f'{art_info["FormattedID"]} {art_info["Name"]} SubmittedBy: {art_info["SubmittedBy"]}  Ready? {art_info["Ready"]}'}
     
-    response = '{"text":"Hola Slacker, digesting your request..."}'
+    response = jsonify({"text":"Hola Slacker, I ate your request"})
     return response
 
 
@@ -158,30 +162,35 @@ def inner_verifySignature(request, config):
     #req_data = jsonify(request.form)
 
     # alt 3
-    #req_data = request.form.to_dict(flat=False)
+    req_data = request.form.to_dict(flat=False)
 
     # alt 3.5
-    data = request.form.to_dict(flat=False)
-    req_data = jsonify(data)
+    #data = request.form.to_dict(flat=False)
+    #req_data = jsonify(data)
 
     # alt 4
     #length = request.headers["Content-Length"]
     #req_data = request.stream.read(length)
 
+    # alt 5
+    body = request.get_data()
+    req_data = body.decode('utf-8')
+
     print(f'req_data: {req_data}')
 
     #payload = str.encode(f'v0:{timestamp}:') + req_data
-    payload = str.encode(f'v0:{timestamp}:{req_data}')
+    #payload = str.encode(f'v0:{timestamp}:{req_data}')
+    payload = f'v0:{timestamp}:{req_data}'
     print(f'payload: {payload}')
 
     secret = str.encode(config['SLACK_SIGNING_SECRET'])
     #print(f'slack shush: {secret}')
-    request_digest = hmac.new(secret, payload, hashlib.sha256).hexdigest()
+    request_digest = hmac.new(secret, payload.encode('utf-8'), hashlib.sha256).hexdigest()
     request_hash = f'v0={request_digest}'
     print(f'request_hash: {request_hash}')
 
     if not hmac.compare_digest(request_hash, signature):
-        print('message not deemed valid...')
+        print('message deemed NOT valid...')
         #raise ValueError('Invalid request/credentials, comparison failed')
 
 
