@@ -155,10 +155,10 @@ def inner_verifySignature(request, config):
     #req_data = request.form
 
     # alt 2.5
-    req_data = jsonify(request.form)
+    #req_data = jsonify(request.form)
 
     # alt 3
-    #req_data = request.form.to_dict(flat=False)
+    req_data = request.form.to_dict(flat=False)
 
     # alt 3.5
     #data = request.form.to_dict(flat=False)
