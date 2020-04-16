@@ -64,7 +64,7 @@ def getRallyArtifact(apikey, workspace, fid):
                     tags_collection_ref = item['Tags']
                     tags = getTags(headers, tags_collection_ref)
                     value = ", ".join(tags)
-           item[attr] = value 
+            item[attr] = value 
 
     return item
 
