@@ -45,12 +45,11 @@ def getRallyArtifact(apikey, workspace, fid):
     warnings = result['QueryResult']['Warnings']
     print(f'result Warnings: {warnings}')
     items = result['QueryResult']['Results']
-    print(f'results items ({result['QueryResult']['TotalResultCount']}): {repr(items)}')
+    print(f'results items ({result["QueryResult"]["TotalResultCount"]}): {repr(items)}')
     bloated_item = items.pop(0)  # we expect only 1 item to be returned
     item = {key : value for key, value in bloated_item.items() if key in DEFECT_FIELDS}
     return item
 
-    return result['QueryResult']['Results']
 
 def validRallyIdent(apikey, sub_id):
     headers = {'zsessionid': apikey}
