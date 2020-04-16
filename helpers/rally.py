@@ -50,7 +50,7 @@ def getRallyArtifact(apikey, workspace, fid):
     bloated_item = items.pop(0)  # we expect only 1 item to be returned
     raw_item = {key : value for key, value in bloated_item.items() if key in DEFECT_FIELDS}
     item = OrderedDict()
-    for attr DEFECT_FIELDS:
+    for attr in DEFECT_FIELDS:
         value = item[attr]
         if value:
             if attr in ['Workspace', 'Project', 'FlowState', 'SubmittedBy']:
