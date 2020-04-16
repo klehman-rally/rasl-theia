@@ -161,17 +161,17 @@ def inner_verifySignature(request, config):
     #req_data = request.form.to_dict(flat=False)
 
     # alt 3.5
-    #data = request.form.to_dict(flat=False)
-    #req_data = jsonify(data)
+    data = request.form.to_dict(flat=False)
+    req_data = jsonify(data)
 
     # alt 4
-    length = request.headers["Content-Length"]
-    req_data = request.stream.read(length)
+    #length = request.headers["Content-Length"]
+    #req_data = request.stream.read(length)
 
     print(f'req_data: {req_data}')
 
-    payload = str.encode(f'v0:{timestamp}:') + req_data
-    #payload = str.encode(f'v0:{timestamp}:{req_data}')
+    #payload = str.encode(f'v0:{timestamp}:') + req_data
+    payload = str.encode(f'v0:{timestamp}:{req_data}')
     print(f'payload: {payload}')
 
     secret = str.encode(config['SLACK_SIGNING_SECRET'])

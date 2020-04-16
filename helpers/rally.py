@@ -51,7 +51,7 @@ def getRallyArtifact(apikey, workspace, fid):
     raw_item = {key : value for key, value in bloated_item.items() if key in DEFECT_FIELDS}
     item = OrderedDict()
     for attr in DEFECT_FIELDS:
-        value = raw_item[attr]
+        value = raw_item.get(attr, None)
         if value:
             if attr in ['Workspace', 'Project', 'FlowState', 'SubmittedBy']:
                 value = raw_item[attr]['_refObjectName']
