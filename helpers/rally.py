@@ -20,8 +20,10 @@ def rallyFIDs(target):
 
 def getRallyArtifact(apikey, workspace, fid):
     headers = {'zsessionid': apikey}
-    entity  = "Artifact"
-    fields  = 'FormattedID,Name,ObjectID,Tags,State,PlanEstimate,Owner,Assigned,Description'
+    #entity  = "Artifact"
+    entity  = "Defect"
+    #fields  = 'FormattedID,Name,ObjectID,Tags,State,PlanEstimate,Owner,Assigned,Description'
+    fields  = 'FormattedID,Name,ObjectID,Tags,State,Owner,Description'
     specific_fid = f'(FormattedID = "{fid}")'
     params = {'workspace' : f'workspace/{workspace}',
               'fetch'     : fields,

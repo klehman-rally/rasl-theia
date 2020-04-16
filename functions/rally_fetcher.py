@@ -43,8 +43,13 @@ def seerally(request):
         print(f'form items: {formls}')
     except Exception as exc:
         print(exc)
+    try:
+        form_data = jsonify(request.form)
+        print(f'form data as json: {form_data}')
+    except Exception as exc:
+        print(exc)
 
-    print(f'request method: {request.method}')
+    #print(f'request method: {request.method}')
     #print(f'request data: {request.data}')
     #print(f'request args: {request.args}')
     #argls = "  ".join([f'{k} : {v}' for k, v in request.args.items()])
@@ -65,12 +70,12 @@ def seerally(request):
     #  
     #####
 
-
     config = inhaleConfig()
     #verified_req = verifySlackSignature(request, config)  # something is horked with signing...
     #ok = verifySignature(request, config)
-    #if ok:
-    #    print('request signature indicates valid Slack origination')
+    ok = inner_verifySignature(request, config)
+    if ok:
+        print('request signature indicates valid Slack origination')
     #else:
     #    print(f'bad request arrangement, no operation...')
 
@@ -136,16 +141,35 @@ def inner_verifySignature(request, config):
     #mac = hmac.new(secret, msg=request.data, digestmod=hashlib.sha256)
     #return hmac.compare_digest(mac.hexdigest(), signature)
 
+    # original
+    #payload = str.encode('v0:{}:'.format(timestamp)) + request.get_data()
+    # using f-string
     #payload = str.encode(f'v0:{timestamp}:') + request.get_data()
-    command  = request.form['command']
-    text     = request.form['text']
-    req_data = f'command={command}&text={text}' 
+
+    #command  = request.form['command']
+    #text     = request.form['text']
+    # alt 1
+    #req_data = f'command={command}&text={text}'   
+
+    # alt 2
+    req_data = request.form
+
+    # alt 2.5
+    #req_data = jsonify(request.form)
+
+    # alt 3
+    #data = request.form.to_dict(flat=False)
+    #req_data = jsonify(data)
+
+    # alt 4
+    #length = request.headers["Content-Length"]
+    #req_data = request.stream.read(length)
+
     payload = str.encode(f'v0:{timestamp}:{req_data}')
     print(f'payload: {payload}')
-    #payload = str.encode('v0:{}:'.format(timestamp)) + request.get_data()
 
     secret = str.encode(config['SLACK_SIGNING_SECRET'])
-    print(f'slack shush: {secret}')
+    #print(f'slack shush: {secret}')
     request_digest = hmac.new(secret, payload, hashlib.sha256).hexdigest()
     request_hash = f'v0={request_digest}'
     print(f'request_hash: {request_hash}')
