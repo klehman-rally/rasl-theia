@@ -10,6 +10,8 @@ RALLY_BASE_URL = 'https://rally1.rallydev.com/slm/webservice/v2.0'
 RALLY_ART_ID_PATTERN = re.compile(r'\b((?:US|S|DE|TA|DS|F|I|T)\d{1,6})\b')
 PAGESIZE = 2000
 
+DEFECT_FIELDS = "FormattedID Name Blocked BlockedReason CreatedBy Description Environment FlowState Owner Project SubmittedBy State ScheduleState Priority Severity Tags PlanEstimate Release Resolution FoundInBuild FixedInBuild VerifiedInBuild AffectedCustomers DisplayColor Ready LastUpdateDate".split(' ')
+
 def rallyFIDs(target):
     """
         Given a target String that may have Rally FormattedIDs in it, extract those
@@ -23,10 +25,11 @@ def getRallyArtifact(apikey, workspace, fid):
     #entity  = "Artifact"
     entity  = "Defect"
     #fields  = 'FormattedID,Name,ObjectID,Tags,State,PlanEstimate,Owner,Assigned,Description'
-    fields  = 'FormattedID,Name,ObjectID,Tags,State,Owner,Description'
+    #fields  = 'FormattedID,Name,ObjectID,Tags,State,Owner,Description'
     specific_fid = f'(FormattedID = "{fid}")'
     params = {'workspace' : f'workspace/{workspace}',
-              'fetch'     : fields,
+              'fetch'     : 'true',
+              #'fetch'    : f'{",".join(DEFECT_FIELDS)}',
               'query'     : specific_fid
              }
 
@@ -39,6 +42,14 @@ def getRallyArtifact(apikey, workspace, fid):
     result = json.loads(response.text)
     errors = result['QueryResult']['Errors']
     print(f'result Errors: {errors}')
+    warnings = result['QueryResult']['Warnings']
+    print(f'result Warnings: {warnings}')
+    items = result['QueryResult']['Results']
+    print(f'results items ({result['QueryResult']['TotalResultCount']}): {repr(items)}')
+    bloated_item = items.pop(0)  # we expect only 1 item to be returned
+    item = {key : value for key, value in bloated_item.items() if key in DEFECT_FIELDS}
+    return item
+
     return result['QueryResult']['Results']
 
 def validRallyIdent(apikey, sub_id):

@@ -97,7 +97,7 @@ def seerally(request):
     ralmap = {pair.split(' / ')[0] : pair.split(' / ')[1] for pair in ck_pairs}
     apikey = ralmap[slack_channel] if slack_channel in ralmap else None
     # we hard-code the Rally workspace ObjectID here, but we'd need to put it in the RALLY_MAP...
-    workspace = '65842453532'
+    workspace = '65842453192'
     if apikey:
         art_info = getRallyArtifact(apikey, workspace, rally_fid)
         print(f'art_info: {repr(art_info)}')
@@ -121,7 +121,7 @@ def verifyToken(request, config):
     return True
 
 
-def rallyInfoFetcher():
+def extractMunchableRallyAttributes(item):
     """
     """
     pass
@@ -152,10 +152,10 @@ def inner_verifySignature(request, config):
     #req_data = f'command={command}&text={text}'   
 
     # alt 2
-    req_data = request.form
+    #req_data = request.form
 
     # alt 2.5
-    #req_data = jsonify(request.form)
+    req_data = jsonify(request.form)
 
     # alt 3
     #data = request.form.to_dict(flat=False)
