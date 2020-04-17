@@ -105,9 +105,96 @@ def seerally(request):
     art_info = getRallyArtifact(apikey, workspace, rally_fid)
     print(f'art_info: {repr(art_info)}')
     slack_blocks = slackifyRallyArtifact(art_info)
-    response = jsonify(slack_blocks)
-    print(f'slacky_json: {response}')
+
+    resp = {"text" : "a little bogosity for your evening entertainment",
+            "blocks" : [{"type" : "section", 
+                         "text":{"text":"_Alice Merton_ *rulz*!","type":"mrkdwn"},
+                         "fields": [{"type": "mrkdwn", "text": "Name"}, 
+                                    {"type": "mrkdwn", "text": "Wheat"}, 
+                                    {"type": "mrkdwn", "text": "*bottoluini*"}, 
+                                    {"type": "mrkdwn", "text": "*farina*"}
+                                   ]            
+                        }, 
+                        {"type": "divider"}
+                       ]
+           }
+    print(f"returning resp which is a {type(resp)} instance with:")
+    print(repr(resp))
+    return jsonify(resp)
+"""
+    blocks = {[
+               {
+                "type": "section",
+                "text": {
+                         "text": "A message *with some bold text* and _some italicized text_.",
+                         "type": "mrkdwn"
+                        },
+                "fields": [
+                        {
+                           "type": "mrkdwn",
+                           "text": "*Priority*"
+                        },
+                        {
+                           "type": "mrkdwn",
+                           "text": "*Type*"
+                        },
+                        {
+                           "type": "plain_text",
+                           "text": "High"
+                        },
+                        {
+                            "type": "plain_text",
+                            "text": "String"
+                        }
+                 ]
+               },
+               { "type": "divider" },
+               {
+                "type": "section",
+                "text": {
+                         "type": "mrkdwn",
+                         "text": "<fakeLink.toArtifact.rallydev.com|*DE108345*> No more heavy wet snowstorms for me thank you"
+                        }
+               },
+               { "type": "divider" },
+               {
+                "type": "section",
+                "fields": [
+                            {
+                              "type": "mrkdwn",
+                              "text": "Workspace : *Geronimo's Plunge Pool*"
+                            },
+                            {
+                              "type": "mrkdwn",
+                              "text": "Project: *Moki and his pony*"
+                            },
+                            {
+                              "type": "mrkdwn",
+                              "text": "Submitter : *Neruda Placebo*"
+                            },
+                            {
+                              "type": "mrkdwn",
+                              "text": "Owner: *Sanford Benton*"
+                            }
+                          ]
+               },
+               { "type": "divider" },
+               {
+                "type": "section",
+                "text": {
+                          "type": "mrkdwn",
+                          "text": "_Bogons and Whiners live next door_"
+                        }
+               }
+           ]
+       }
+    response = json.dumps(blocks)
     return response
+
+    #response = jsonify(slack_blocks)
+    #print(f'slacky_json: {response}')
+    #return response
+"""
 
 
 def inhaleConfig():
@@ -125,7 +212,7 @@ def verifyToken(request, config):
     return True
 
 
-def extractMunchableRallyAttributes(item):
+def slackifyRallyArtifact(item):
     """
      DE3243 Foobar is nuts but you have dutiful sinews
     <------------------------------------------------->
@@ -169,11 +256,10 @@ def extractMunchableRallyAttributes(item):
         help and a note to make the results available to all in the channel
     """
     blocks = []
-    def divider():
-        return { "type": "divider" }
 
-    fake_link = f'<fakeLink.toArtifact.rallydev.com|*{item["FormattedID"]}*>'
-    headline = mrkdwnSection(f'{fake_link} {item["Name"]}')
+    print("in slackifyRallyArtifact")
+    fake_link   = f'<fakeLink.toArtifact.rallydev.com|*{item["FormattedID"]}*>'
+    headline    = mrkdwnSection(f'{fake_link} {item["Name"]}')
     description = f'_{item["Description"]}_'  # underscores make this italicized
     field_pairs = [('Workspace',      'Project'      ), 
                    ('SubmittedBy',    'Owner'        ), 
@@ -185,6 +271,7 @@ def extractMunchableRallyAttributes(item):
                    ('FlowState',      'Environment'  ),
                    ('LastUpdateDate', 'Tags'         )
                   ]
+    print("... calling pairedFields for the item and the pairs")
     fields = pairedFields(item, field_pairs)
     blocks = [headline,
               divider(),
@@ -192,8 +279,11 @@ def extractMunchableRallyAttributes(item):
               divider(),
               description
              ]
-    return f'{"blocks": {blocks}}'
+    print("back to caller with the blocks...")
+    return {"blocks": blocks}
 
+def divider():
+    return { "type": "divider" }
 
 def mrkdwnSection(text):
     section = {
@@ -223,7 +313,7 @@ def pairedFields(item, pairs):
         field_items.append(lcol)
         field_items.append(rcol)
 
-    return {"type": "section", "fields: field_items }
+    return { "type": "section", "fields": field_items }
 
 
 def inner_verifySignature(request, config):
@@ -256,7 +346,9 @@ def inner_verifySignature(request, config):
     #req_data = jsonify(request.form)
 
     # alt 3
-    req_data = request.form.to_dict(flat=False)
+    #req_data = request.form.to_dict(flat=False)
+    req_data = request.form.to_dict(flat=True)
+    print(f"request.form.to_dict results in a {type(req_data)} instance")
 
     # alt 3.5
     #data = request.form.to_dict(flat=False)
@@ -267,8 +359,8 @@ def inner_verifySignature(request, config):
     #req_data = request.stream.read(length)
 
     # alt 5
-    body = request.get_data()
-    req_data = body.decode('utf-8')
+    #body = request.get_data()
+    #req_data = body.decode('utf-8')
 
     print(f'req_data: {req_data}')
 
