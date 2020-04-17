@@ -104,9 +104,9 @@ def seerally(request):
 
     art_info = getRallyArtifact(apikey, workspace, rally_fid)
     print(f'art_info: {repr(art_info)}')
-    resp = {'text': f'{art_info["FormattedID"]} {art_info["Name"]} SubmittedBy: {art_info["SubmittedBy"]}  Ready? {art_info["Ready"]}'}
-    
-    response = jsonify({"text":"Hola Slacker, I ate your request"})
+    slack_blocks = slackifyRallyArtifact(art_info)
+    response = jsonify(slack_blocks)
+    print(f'slacky_json: {response}')
     return response
 
 
@@ -127,9 +127,103 @@ def verifyToken(request, config):
 
 def extractMunchableRallyAttributes(item):
     """
-    """
-    pass
+     DE3243 Foobar is nuts but you have dutiful sinews
+    <------------------------------------------------->
+     Workspace xxxxxxxx   Project XXXXXXXXXX
+     SubmittedBy          Owner
+     Blocked  T/F         BlockedReason
+     Severity             Priority
+     Ready                Resolution
+     FoundInBuild         FixedInBuild
+     State                ScheduleState
+     PlanEstimate         Release
+     FlowState            Environment
+     LastUpdateDate       Tags or DisplayColor
+    <------------------------------------------------->
+     Description
 
+     The above is the gross level formatting to be done with fields from the item.
+     Using the Slack Block approach, for the big belly section we'll use the fields
+     construct where you can have 2 colums of info.  Each entry in a column will be
+     mrkdwn formatted with the field name in normal text and the field value immediately
+     to the right and in bold text.  We'll need to process in pairs, as an example
+     we'll take 'FoundInBuild' and 'FixedInBuild' as a pair.  They'll each get an element
+     in the Blocks construct being populated.
+       "fields" : [
+        ...
+        {"type": "mrkdwn", "text": "FoundInBuild: *3.14.2*"}
+        {"type": "mrkdwn", "text": "FixedInBuild: **"}
+        ...
+        ]
+
+     The whole Blocks construction consists of
+
+       FormattedID Name
+       <divider>
+         Field pairs
+         Field pairs
+         ...
+       <divider>
+       Description
+       <divider>
+        help and a note to make the results available to all in the channel
+    """
+    blocks = []
+    def divider():
+        return { "type": "divider" }
+
+    fake_link = f'<fakeLink.toArtifact.rallydev.com|*{item["FormattedID"]}*>'
+    headline = mrkdwnSection(f'{fake_link} {item["Name"]}')
+    description = f'_{item["Description"]}_'  # underscores make this italicized
+    field_pairs = [('Workspace',      'Project'      ), 
+                   ('SubmittedBy',    'Owner'        ), 
+                   ('Blocked',        'BlockedReason'), 
+                   ('Ready',          'Resolution'   ), 
+                   ('FoundInBuild',   'FixedInBuild' ), 
+                   ('State',          'ScheduleState'), 
+                   ('PlanEstimate',   'Release'      ),
+                   ('FlowState',      'Environment'  ),
+                   ('LastUpdateDate', 'Tags'         )
+                  ]
+    fields = pairedFields(item, field_pairs)
+    blocks = [headline,
+              divider(),
+              fields,
+              divider(),
+              description
+             ]
+    return f'{"blocks": {blocks}}'
+
+
+def mrkdwnSection(text):
+    section = {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "f'{text}'"}
+              }
+    return section
+
+def pairedFields(item, pairs):
+    field_items = []
+    for left, right in pairs:
+        if left == 'Blocked':
+            if not item.get('Blocked', False):  # if not Blocked don't include this pair
+                continue
+        if left == 'FoundInBuild':
+            if not item.get(left, False) and not item.get(right, False):
+                continue
+        if left == 'PlanEstimate':
+            if not item.get(left, False) and not item.get(right, False):
+                continue
+        if left == 'FlowState':
+            if not item.get(left, False) and not item.get(right, False):
+                continue
+
+        lcol = {"type": "mrkdwn", "text": "f'{left}  : *{item.get( left, '')}*'"}
+        rcol = {"type": "mrkdwn", "text": "f'{right} : *{item.get(right, '')}*'"}
+        field_items.append(lcol)
+        field_items.append(rcol)
+
+    return {"type": "section", "fields: field_items }
 
 
 def inner_verifySignature(request, config):

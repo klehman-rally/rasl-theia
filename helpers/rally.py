@@ -49,14 +49,13 @@ def getRallyArtifact(apikey, workspace, fid):
     print(f'results items ({result["QueryResult"]["TotalResultCount"]}): {repr(items)}')
     bloated_item = items.pop(0)  # we expect only 1 item to be returned
     raw_item = {key : value for key, value in bloated_item.items() if key in DEFECT_FIELDS}
+    print(f'raw_item Name is |{raw_item["Name"]}|')
     item = OrderedDict()
     for attr in DEFECT_FIELDS:
         value = raw_item.get(attr, None)
         if value:
             if attr in ['Workspace', 'Project', 'FlowState', 'SubmittedBy']:
                 value = raw_item[attr]['_refObjectName']
-            if attr == 'Name':
-                value = raw_item.get('_refObjectName')
             if attr == 'CreatedBy':
                 value = raw_item['CreatedBy']['Name']
             if attr == 'LastUpdateDate':
