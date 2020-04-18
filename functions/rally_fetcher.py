@@ -101,11 +101,8 @@ def seerally(request):
         return jsonify(response)
 
     audience = 'ephemeral'
-    words = form_text.split(' ')
-    if words:
-        last_word = words[-1]
-        if last_word == 'public':
-            audience = 'in-channel'
+    if form_text.endswith(' public'):
+        audience = 'in_channel'
 
     art_info = getRallyArtifact(apikey, workspace, rally_fid)
     print(f'art_info: {repr(art_info)}')
