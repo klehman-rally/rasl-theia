@@ -192,7 +192,7 @@ def slackifyRallyArtifact(item):
         blocked = True
         not_speced = 'No reason for the block has been supplied'
         blocked_reason = item.get('BlockedReason', not_speced)
-        blockage = mrkdownSection(f'*BLOCKED* - {blocked_reason}')
+        blockage = mrkdwnSection(f'*BLOCKED* - {blocked_reason}')
         blocks.append(blockage)
 
     blocks.append(divider())
