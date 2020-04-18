@@ -73,7 +73,7 @@ def getRallyArtifact(apikey, workspace, fid):
     return item
 
 def getTags(headers, tags_ref):
-    response = requests.get(tags_ref, headers=headers, params=params)
+    response = requests.get(tags_ref, headers=headers)
     if response.status_code != 200:
         return []
     result = json.loads(response.text)
