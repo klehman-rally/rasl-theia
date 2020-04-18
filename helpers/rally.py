@@ -84,8 +84,6 @@ def getRallyArtifact(apikey, workspace, fid):
         if value:
             if attr in ['Workspace', 'Project', 'SubmittedBy', 'CreatedBy', 'Owner']:
                 value = raw_item[attr]['_refObjectName']
-            if attr == 'CreatedBy':
-                value = raw_item['CreatedBy']['Name']
             if attr == 'LastUpdateDate':
                 value = value.replace('T', ' ')
             if attr == 'Ready':
