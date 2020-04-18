@@ -11,6 +11,7 @@ bold()   { echo -e $(colorize 1 "$@"); }
 red()    { echo -e $(colorize 31 "$@"); }
 green()  { echo -e $(colorize 32 "$@"); }
 yellow() { echo -e $(colorize 33 "$@"); }
+blue()   { echo -e $(colorize 34 "$@"); }
 cyan()   { echo -e $(colorize 36 "$@"); }
 reset()  { tput sgr0; }
 
@@ -44,7 +45,7 @@ fi
 
 PUBLIC="--allow-unauthenticated"
 
-yellow "Deploying $FUNCTION_NAME from $GIT_BRANCH branch to $GCP_PROJECT"
+blue "Deploying $FUNCTION_NAME from $GIT_BRANCH branch to $GCP_PROJECT"
 
 COMMAND="gcloud functions deploy ${FUNCTION_NAME} --entry-point ${ENTRY_POINT} \
                 --env-vars-file env/${ENV_VARS_FILE} \
