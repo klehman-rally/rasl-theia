@@ -61,7 +61,7 @@ def getRallyArtifact(apikey, workspace, fid):
              }
 
     url = f'{RALLY_BASE_URL}/{entity}'
-    print(f'getRallyArtifact parmams: {params}')
+    print(f'getRallyArtifact params: {params}')
     #print(f'headers {headers}')
     #print(f'url {url}')
     response = requests.get(url, headers=headers, params=params)
@@ -79,6 +79,7 @@ def getRallyArtifact(apikey, workspace, fid):
     raw_item = {key : value for key, value in bloated_item.items() if key in fields}
     item = OrderedDict()
     item['entity'] = 'Story' if entity == 'HierarchicalRequirement' else entity
+    item['art_url'] = bloated_item['_ref']
     for attr in fields:
         value = raw_item.get(attr, None)
         if value:

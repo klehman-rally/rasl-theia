@@ -168,8 +168,9 @@ def slackifyRallyArtifact(item):
     blocks = []
 
     print("in slackifyRallyArtifact")
-    fake_link   = f'<fakeLink.toArtifact.rallydev.com|*{item["FormattedID"]}*>'
-    headline    = mrkdwnSection(f'{fake_link} {item["Name"]}')
+    art_url = item['art_url']
+    item_url   = f'<{art_url}|*{item["FormattedID"]}*>'
+    headline    = mrkdwnSection(f'{item_url} {item["Name"]}')
     # Limit the description to a max of 2000 chars
     description = f'_{item["Description"][:2000]}_'  # underscores make this italicized
     # Slack only allows 10 items in a 2 columns "fields" construct
@@ -237,7 +238,9 @@ def pairedFields(item, pairs):
         if left == 'LastUpdateDate':
             left_value = f'*{left_raw_value[:-5]} Z*' # cut off the millis part
         if right == 'Ready':
-            right_value = ':white-check-mark:' if right_raw_value == 'yes' else ':no-entry:'
+            right_value = ' :no_entry: ' # default to not ready.
+            if right_raw_value == 'yes':
+                right_value = ' :white_check_mark: '
         if right == 'Tags':
             if not right_value:
                 right_value = '-none-'
