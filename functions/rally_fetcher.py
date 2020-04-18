@@ -175,13 +175,24 @@ def slackifyRallyArtifact(item):
     # Limit the description to a max of 2000 chars
     description = f'_{item["Description"][:2000]}_'  # underscores make this italicized
     # Slack only allows 10 items in a 2 columns "fields" construct
-    field_pairs = [('Workspace',      'Project'      ), 
-                   ('SubmittedBy',    'Owner'        ), 
-                   ('Environment',    'Ready'        ), 
-                   ('State',          'ScheduleState'), 
-                   ('LastUpdateDate', 'Tags'         )
-                  ]
-    print("... calling pairedFields for the item and the pairs")
+
+    defect_pairs = [('Workspace',      'Project'      ), 
+                    ('SubmittedBy',    'Owner'        ), 
+                    ('Environment',    'Ready'        ), 
+                    ('State',          'ScheduleState'), 
+                    ('LastUpdateDate', 'Tags'         )
+                   ]
+    story_pairs =  [('Workspace',      'Project'      ), 
+                    ('CreatedBy',      'Owner'        ), 
+                    ('Release',        'Feature'      ), 
+                    ('ScheduleState',  'PlanEstimate' ), 
+                    ('LastUpdateDate', 'Tags'         )
+                   ]
+    if item['entity'] == 'Defect':
+        field_pairs = defect_pairs
+    elif item['entity'] == 'Story':
+        field_pairs = story_pairs
+    print(f"... calling pairedFields for the {item['entity']} item and the pairs")
     fields = pairedFields(item, field_pairs)
     blocks = [headline, divider(), fields]
 
@@ -227,9 +238,9 @@ def pairedFields(item, pairs):
         right_value = f'*{right_raw_value}*' if right_raw_value else ''
         if left == 'LastUpdateDate':
             left_value = f'*{left_raw_value[:-5]} Z*' # cut off the millis part
-        if right == 'Ready':
-            if not right_value:
-                right_value = 'no'
+        #if right == 'Ready':
+        #    if not right_value:
+        #        right_value = 'no'
         if right == 'Tags':
             if not right_value:
                 right_value = '-none-'

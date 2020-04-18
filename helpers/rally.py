@@ -3,15 +3,34 @@ import time
 import json
 import re
 import time
+import string
 from collections import OrderedDict
 
 import requests
 
 RALLY_BASE_URL = 'https://rally1.rallydev.com/slm/webservice/v2.0'
-RALLY_ART_ID_PATTERN = re.compile(r'\b((?:US|S|DE|TA|DS|F|I|T)\d{1,6})\b')
+RALLY_ART_ID_PATTERN = re.compile(r'\b((?:US|S|DE|DS|TA|TC|F|I|T)\d{1,7})\b')
+
 PAGESIZE = 2000
 
-DEFECT_FIELDS = "FormattedID Name Workspace Project SubmittedBy Blocked BlockedReason Description Environment FlowState Owner State ScheduleState Priority Severity Resolution Ready LastUpdateDate Tags".split(' ')
+ENTITY = {"S"  : "HierarchicalRequirement",
+          "US" : "HierarchicalRequirement",
+          "DE" : "Defect",
+          "DS" : "DefectSuite",
+          "TA" : "Task",
+          "TC" : "TestCase",
+          "F"  : "Feature",
+          "I"  : "Initiative",
+          "T"  : "Theme",
+         }
+
+DEFECT_FIELDS = "FormattedID Name Workspace Project SubmittedBy Blocked BlockedReason Description Environment Owner State ScheduleState Priority Severity Resolution Ready LastUpdateDate Tags".split(' ')
+STORY_FIELDS = "FormattedID Name Workspace Project CreatedBy Owner Blocked BlockedReason Description ScheduleState Release Feature PlanEstimate LastUpdateDate Tags".split(' ')
+
+ART_FIELDS = {'DE' : DEFECT_FIELDS,
+              'S'  : STORY_FIELDS,
+              'US' : STORY_FIELDS,
+             }
 
 def rallyFIDs(target):
     """
@@ -21,16 +40,23 @@ def rallyFIDs(target):
     hits = RALLY_ART_ID_PATTERN.findall(target)
     return hits
 
+def artPrefix(target):
+    """
+        Given a target that is a FormattedID, burn off the trailing digits 
+        returning the artifact prefix letters as a string.
+    """
+    letters = [char for char in target[:2] if char not in string.digits]
+    return "".join(letters)
+
+
 def getRallyArtifact(apikey, workspace, fid):
     headers = {'zsessionid': apikey}
-    #entity  = "Artifact"
-    entity  = "Defect"
-    #fields  = 'FormattedID,Name,ObjectID,Tags,State,PlanEstimate,Owner,Assigned,Description'
-    #fields  = 'FormattedID,Name,ObjectID,Tags,State,Owner,Description'
+    entity = ENTITY[artPrefix(fid)]
+    fields = ART_FIELDS[artPrefix(fid)]
     specific_fid = f'(FormattedID = "{fid}")'
     params = {'workspace' : f'workspace/{workspace}',
               #'fetch'     : 'true',
-              'fetch'    : f'{",".join(DEFECT_FIELDS)}',
+              'fetch'    : f'{",".join(fields)}',
               'query'     : specific_fid
              }
 
@@ -50,17 +76,28 @@ def getRallyArtifact(apikey, workspace, fid):
     items = result['QueryResult']['Results']
     print(f'results items ({result["QueryResult"]["TotalResultCount"]}): {repr(items)}')
     bloated_item = items.pop(0)  # we expect only 1 item to be returned
-    raw_item = {key : value for key, value in bloated_item.items() if key in DEFECT_FIELDS}
+    raw_item = {key : value for key, value in bloated_item.items() if key in fields}
     item = OrderedDict()
-    for attr in DEFECT_FIELDS:
+    item['entity'] = 'Story' if entity == 'HierarchicalRequirement' else entity
+    for attr in fields:
         value = raw_item.get(attr, None)
         if value:
-            if attr in ['Workspace', 'Project', 'FlowState', 'SubmittedBy']:
+            if attr in ['Workspace', 'Project', 'SubmittedBy', 'CreatedBy', 'Owner']:
                 value = raw_item[attr]['_refObjectName']
             if attr == 'CreatedBy':
                 value = raw_item['CreatedBy']['Name']
             if attr == 'LastUpdateDate':
                 value = value.replace('T', ' ')
+            if attr == 'Ready':
+                value = 'yes' if value else 'no'
+            if attr == 'PlanEstimate':
+                value = str(value).split('.')[0]
+            if attr == 'Release':
+                value = raw_item[attr]['_refObjectName']
+            if attr == 'Feature':
+                # placeholder for now, this won't work
+                # have to chase the raw_item[attr] ref value via WSAPI to get the FormattedID
+                value = raw_item[attr]['_ref'] 
             if attr == 'Tags':
                 if raw_item['Tags']['Count'] == 0:
                     continue
