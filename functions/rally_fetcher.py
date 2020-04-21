@@ -85,6 +85,9 @@ def seerally(request):
     rally_fids = rallyFIDs(form_text)
     if rally_fids:
         rally_fid = rally_fids.pop(0)
+    else:
+        response = {"text":" Sorry, I have no info regarding %s" % form_text}
+        return jsonify(response)
 
     slack_channel = request.form.get('channel_id')
     raw_ralmap = os.environ.get('RALLY_MAP', ' / ')
@@ -105,6 +108,10 @@ def seerally(request):
         audience = 'in_channel'
 
     art_info = getRallyArtifact(apikey, workspace, rally_fid)
+    if not art_info:
+        response = {"text": f"Sorry, I have no info for {rally_fid}"}
+        return jsonify(response)
+
     print(f'art_info: {repr(art_info)}')
     slack_blocks = slackifyRallyArtifact(art_info)
     package = {"text"   : "info for Rally artifact",
@@ -169,7 +176,10 @@ def slackifyRallyArtifact(item):
     item_url   = f'<{art_url}|*{item["FormattedID"]}*>'
     headline    = mrkdwnSection(f'{item_url} {item["Name"]}')
     # Limit the description to a max of 2000 chars
-    description = f'_{item["Description"][:2000]}_'  # underscores make this italicized
+    desc = '-no description-'
+    if item.get('Description', None):
+        desc = f'_{item["Description"][:2000]}_' # the underscores are for italics
+
     # Slack only allows 10 items in a 2 columns "fields" construct
 
     defect_pairs = [('Workspace',      'Project'      ), 
@@ -203,7 +213,7 @@ def slackifyRallyArtifact(item):
         blocks.append(blockage)
 
     blocks.append(divider())
-    blocks.append(mrkdwnSection(description))
+    blocks.append(mrkdwnSection(desc))
     print("back to caller with the blocks...")
     return blocks
 
@@ -249,7 +259,6 @@ def pairedFields(item, pairs):
         #print(f'right: {rcol}')
 
     return { "type": "section", "fields": field_items }
-
 
 ###########################################################################################
 ###########################################################################################

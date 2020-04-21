@@ -75,6 +75,8 @@ def getRallyArtifact(apikey, workspace, fid):
         print(f'result Warnings: {warnings}')
     items = result['QueryResult']['Results']
     print(f'results items ({result["QueryResult"]["TotalResultCount"]}): {repr(items)}')
+    if not items:
+        return None
     bloated_item = items.pop(0)  # we expect only 1 item to be returned
     raw_item = {key : value for key, value in bloated_item.items() if key in fields}
     item = OrderedDict()
